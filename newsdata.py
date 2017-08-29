@@ -6,7 +6,6 @@
 
 import psycopg2
 
-
 # What are the most popular three articles of all time?
 query_1_title = ("What are the most popular three articles of all time?")
 query_1 = (
