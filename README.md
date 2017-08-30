@@ -14,7 +14,7 @@ The scope of this project is to query a large database with over a million rows 
 
 ### Setup
 1. Install PostgreSQL 
-2. psql CLI
+2. Install psql CLI
 3. Clone this repository
 4. run `psql` in the Terminal or Command Line
 5. Create a database called `news` with the following command:

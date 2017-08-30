@@ -3,30 +3,58 @@
 # Logs Analysis
 # 8/2017
 #
+# Multiple versions of each query provided to determine
+# best practice and most efficient query.
 
 import psycopg2
 
-# What are the most popular three articles of all time?
-query_1_title = ("What are the most popular three articles of all time?")
-query_1 = (
+# Define queries
+# Query: What are the most popular three articles of all time?
+first_title = "\n1. What are the most popular three articles of all time?\n"
+
+query_1_v_1 = (
     "select articles.title, count(*) as views "
     "from articles inner join log on log.path "
     "like concat('%', articles.slug, '%') "
     "where log.status like '%200%' group by "
     "articles.title, log.path order by views desc limit 3")
 
-# Who are the most popular article authors of all time?
-query_2_title = ("Who are the most popular article authors of all time?")
-query_2 = (
+# 2nd version
+# No need to check status and just count hits
+top_3_articles_sql_query_v_2 = (
+    "SELECT articles.title, count(*) AS hits FROM articles, log " 
+    "WHERE log.path LIKE concat('%', articles.slug) "
+    "GROUP BY articles.title ORDER BY hits DESC LIMIT 3")
+
+# 3rd version
+# Use any() & string_to_array() to match path to slug
+top_3_articles_sql_query_v_3 = (
+    "SELECT articles.title, count(*) AS hits FROM articles, log " 
+    "WHERE articles.slug = any(string_to_array(log.path, '/')) " 
+    "GROUP BY articles.title ORDER BY hits DESC LIMIT 3")
+
+# Query: Who are the most popular article authors of all time?
+second_title = "\n2. Who are the most popular article authors of all time?\n"
+
+query_2_v_1 = (
     "select authors.name, count(*) as views from articles inner "
     "join authors on articles.author = authors.id inner join log "
     "on log.path like concat('%', articles.slug, '%') where "
     "log.status like '%200%' group "
     "by authors.name order by views desc")
 
-# On which days did more than 1% of requests lead to errors
-query_3_title = ("On which days did more than 1% of requests lead to errors?")
-query_3 = (
+# 2nd version
+# Use any() & string_to_array() to match path to slug
+popular_authors_query_v_2 = (
+    "SELECT authors.name, count(*) AS hits FROM authors, articles, "
+    "log WHERE articles.author = authors.id AND articles.slug = "
+    "any(string_to_array(log.path, '/')) GROUP BY articles.author, "
+    "authors.name ORDER BY hits DESC")
+
+# Query: On which days did more than 1% of requests lead to errors
+third_title = "\n3. On which days did more than 1% of requests lead to errors: \n"
+
+query_3_v_1 = (
     "select day, perc from ("
     "select day, round((sum(requests)/(select count(*) from log where "
     "substring(cast(log.time as text), 0, 11) = day) * 100), 2) as "
@@ -35,46 +63,46 @@ query_3 = (
     "as log_percentage group by day order by perc desc) as final_query "
     "where perc >= 1")
 
+# 2nd version
+# Use Sub Select to find Days with errors >= 1%
+errors_query_v_2 = (
+    "SELECT * FROM (SELECT date(log.time), round(100.0 * sum(CASE "
+    "log.status WHEN '200 OK' THEN 0 ELSE 1 END)/count(log.status), 3) "
+    "AS \"ERROR PCT\" FROM log GROUP BY date(log.time) ORDER BY \"ERROR PCT\" "
+    "DESC) SS WHERE \"ERROR PCT\" >= 1")
 
-def connect(database_name="news"):
-    """Connect to the PostgreSQL database. Returns a database connection """
-    try:
-        db = psycopg2.connect("dbname={}".format(database_name))
-        cursor = db.cursor()
-        return db, cursor
-    except:
-        print ("Unable to connect to the database")
+# define function to get query results
+def query_news_db(query_v_2):
+  # Connect directly to news db
+  db = psycopg2.connect(database="news")
+  cur = db.cursor()
 
+  # Execute v2 queries
+  cur.execute(query_v_2)
 
-def get_query_results(query):
-    """Return query results for given query """
-    db, cursor = connect()
-    cursor.execute(query)
-    return cursor.fetchall()
-    db.close()
+  # return query results
+  return cur.fetchall()
 
+  # close database
+  db.close()
 
-def print_query_results(query_results):
-    print (query_results[1])
-    for index, results in enumerate(query_results[0]):
-        print (
-            "\t", index+1, "-", results[0],
-            "\t - ", str(results[1]), "views")
+# define function to print query results
+def print_result_from_db(title, results):
+    # Print the title
+    print(title)
 
+    # loop through results and output
+    # justify results to format output
+    for result in results:
+        print("\t" + str(result[0]).ljust(40) + str(result[1]).ljust(10) + " hits")
 
-def print_error_results(query_results):
-    print (query_results[1])
-    for results in query_results[0]:
-        print ("\t", results[0], "-", str(results[1]) + "% errors")
+# Call functions. Get data from news db
+query_1_results_v_2 = query_news_db(top_3_articles_sql_query_v_3)
+query_2_results_v_2 = query_news_db(popular_authors_query_v_2)
+query_3_results_v_2 = query_news_db(errors_query_v_2)
 
-
-if __name__ == '__main__':
-    # store query results
-    popular_articles_results = get_query_results(query_1), query_1_title
-    popular_authors_results = get_query_results(query_2), query_2_title
-    load_error_days = get_query_results(query_3), query_3_title
-
-    # print query results
-    print_query_results(popular_articles_results)
-    print_query_results(popular_authors_results)
-    print_error_results(load_error_days)
+# Call functions. Print results.
+print_result_from_db(first_title, query_1_results_v_2)
+print_result_from_db(second_title, query_2_results_v_2)
+print_result_from_db(third_title, query_3_results_v_2)
+    
