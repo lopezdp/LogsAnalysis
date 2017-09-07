@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 #
 # David P. Lopez
 # Logs Analysis
@@ -73,13 +74,14 @@ def print_result_from_db(title, results):
     for result in results:
         print("\t" + str(result[0]).ljust(40) + str(result[1]).ljust(10) + " hits")
 
-# Call functions. Get data from news db
-query_1_results_v_2 = query_news_db(top_3_articles_sql_query_v_3)
-query_2_results_v_2 = query_news_db(popular_authors_query_v_2)
-query_3_results_v_2 = query_news_db(errors_query_v_2)
+if __name__ == "__main__":
+  # Call functions. Get data from news db
+  query_1_results_v_2 = query_news_db(top_3_articles_sql_query_v_3)
+  query_2_results_v_2 = query_news_db(popular_authors_query_v_2)
+  query_3_results_v_2 = query_news_db(errors_query_v_2)
 
-# Call functions. Print results.
-print_result_from_db(first_title, query_1_results_v_2)
-print_result_from_db(second_title, query_2_results_v_2)
-print_result_from_db(third_title, query_3_results_v_2)
+  # Call functions. Print results.
+  print_result_from_db(first_title, query_1_results_v_2)
+  print_result_from_db(second_title, query_2_results_v_2)
+  print_result_from_db(third_title, query_3_results_v_2)
     
